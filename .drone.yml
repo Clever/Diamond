@@ -1,0 +1,15 @@
+image: python2.7
+notify:
+  email:
+    recipients:
+    - drone@clever.com
+  slack:
+    on_failure: true
+    on_started: false
+    on_success: false
+    webhook_url: $$slack_webhook
+script:
+- sudo apt-get -yq update
+- sudo apt-get install libpq-dev lm-sensors libsensors4
+- pip install -q --upgrade setuptools && pip install -q -r requirements.txt
+- python test.py

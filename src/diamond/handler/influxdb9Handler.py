@@ -16,11 +16,11 @@ v1.2 : added a timer to delay influxdb writing in case of failure
 
 - enable it in `diamond.conf` :
 
-handlers = diamond.handler.influxdbHandler.InfluxdbHandler
+handlers = diamond.handler.influxdb9Handler.Influxdb9Handler
 
 - add config to `diamond.conf` :
 
-[[InfluxdbHandler]]
+[[Influxdb9Handler]]
 hostname = localhost
 port = 8086 #8084 for HTTPS
 batch_size = 100 # default to 1
@@ -47,7 +47,7 @@ except ImportError:
     InfluxDB08Client = None
 
 
-class InfluxdbHandler(Handler):
+class Influxdb9Handler(Handler):
     """
     Sending data to Influxdb using batched format
     """
@@ -57,6 +57,7 @@ class InfluxdbHandler(Handler):
         """
         # Initialize Handler
         Handler.__init__(self, config)
+
 
         # Initialize Options
         if self.config['ssl'] == "True":
@@ -98,7 +99,7 @@ class InfluxdbHandler(Handler):
         """
         Returns the help text for the configuration options for this handler
         """
-        config = super(InfluxdbHandler, self).get_default_config_help()
+        config = super(Influxdb9Handler, self).get_default_config_help()
 
         config.update({
             'hostname': 'Hostname',
@@ -122,7 +123,7 @@ class InfluxdbHandler(Handler):
         """
         Return the default config for the handler
         """
-        config = super(InfluxdbHandler, self).get_default_config()
+        config = super(Influxdb9Handler, self).get_default_config()
 
         config.update({
             'hostname': 'localhost',
@@ -141,7 +142,7 @@ class InfluxdbHandler(Handler):
 
     def __del__(self):
         """
-        Destroy instance of the InfluxdbHandler class
+        Destroy instance of the Influxdb9Handler class
         """
         self._close()
 
@@ -156,7 +157,7 @@ class InfluxdbHandler(Handler):
                 time.time() - self.batch_timestamp) > 2**self.time_multiplier:
             # Log
             self.log.debug(
-                "InfluxdbHandler: Sending batch sizeof : %d/%d after %fs",
+                "Influxdb9Handler: Sending batch sizeof : %d/%d after %fs",
                 self.batch_count,
                 self.batch_size,
                 (time.time() - self.batch_timestamp))
@@ -166,7 +167,7 @@ class InfluxdbHandler(Handler):
             self._send()
         else:
             self.log.debug(
-                "InfluxdbHandler: not sending batch of %d as timestamp is %f",
+                "Influxdb9Handler: not sending batch of %d as timestamp is %f",
                 self.batch_count,
                 (time.time() - self.batch_timestamp))
 
@@ -177,11 +178,11 @@ class InfluxdbHandler(Handler):
         # Check to see if we have a valid socket. If not, try to connect.
         try:
                 if self.influx is None:
-                    self.log.debug("InfluxdbHandler: Socket is not connected. "
+                    self.log.debug("Influxdb9Handler: Socket is not connected. "
                                    "Reconnecting.")
                     self._connect()
                 if self.influx is None:
-                    self.log.debug("InfluxdbHandler: Reconnect failed.")
+                    self.log.debug("Influxdb9Handler: Reconnect failed.")
                 else:
                     # build metrics data
                     metrics = []
@@ -206,7 +207,7 @@ class InfluxdbHandler(Handler):
                                 "time": self.batch[path][0][0],
                                 "fields": {"value": value}})
                     # Send data to influxdb
-                    self.log.debug("InfluxdbHandler: writing %d series of data",
+                    self.log.debug("Influxdb9Handler: writing %d series of data",
                                    len(metrics))
                     self.influx.write_points(metrics,
                                              time_precision=self.time_precision)
@@ -221,7 +222,7 @@ class InfluxdbHandler(Handler):
                 if self.time_multiplier < 5:
                     self.time_multiplier += 1
                 self._throttle_error(
-                    "InfluxdbHandler: Error sending metrics, waiting for %ds.",
+                    "Influxdb9Handler: Error sending metrics, waiting for %ds.",
                     2**self.time_multiplier)
                 raise
 
@@ -233,7 +234,6 @@ class InfluxdbHandler(Handler):
         try:
             # Open Connection
             if self.influxdb_version == '0.8':
-                # Use legacy client for InfluxDB 0.8
                 self.influx = InfluxDB08Client(self.hostname, self.port,
                                         self.username, self.password,
                                         self.database, self.ssl)
@@ -242,12 +242,12 @@ class InfluxdbHandler(Handler):
                                          self.username, self.password,
                                          self.database, self.ssl)
             # Log
-            self.log.debug("InfluxdbHandler: Established connection to "
+            self.log.debug("Influxdb9Handler: Established connection to "
                            "%s:%d/%s.",
                            self.hostname, self.port, self.database)
         except Exception, ex:
             # Log Error
-            self._throttle_error("InfluxdbHandler: Failed to connect to "
+            self._throttle_error("Influxdb9Handler: Failed to connect to "
                                  "%s:%d/%s. %s",
                                  self.hostname, self.port, self.database, ex)
             # Close Socket

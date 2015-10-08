@@ -10,11 +10,12 @@ import Queue
 
 
 class QueueHandler(Handler):
-    def __init__(self, config=None, queue=None, log=None):
+    def __init__(self, config=None, queue=None, log=None, should_exit=None):
         # Initialize Handler
         Handler.__init__(self, config=config, log=log)
 
         self.queue = queue
+        self.should_exit = should_exit
 
     def __del__(self):
         """
@@ -34,7 +35,8 @@ class QueueHandler(Handler):
         try:
             self.queue.put(metric, block=False)
         except Queue.Full:
-            pass
+            self.log.error("metric queue full")
+            self.should_exit.set()
 
     def flush(self):
         return self._flush()
@@ -48,4 +50,5 @@ class QueueHandler(Handler):
         try:
             self.queue.put(None, block=False)
         except Queue.Full:
-            pass
+            self.log.error("metric queue full")
+            self.should_exit.set()

@@ -59,6 +59,7 @@ class Server(object):
         if setproctitle:
             setproctitle(oldproctitle)
         self.metric_queue = self.manager.Queue(maxsize=16384)
+        self.metric_queue_full = self.manager.Event()
 
     def run(self):
         """
@@ -109,7 +110,7 @@ class Server(object):
             )
 
         self.handler_queue = QueueHandler(
-            config=self.config, queue=self.metric_queue, log=self.log)
+            config=self.config, queue=self.metric_queue, log=self.log, should_exit=self.metric_queue_full)
 
         process = multiprocessing.Process(
             name="Handlers",
@@ -199,6 +200,8 @@ class Server(object):
                 ##############################################################
 
                 time.sleep(1)
+                if self.handler_queue.should_exit.is_set():
+                    exit(1)
 
             except SIGHUPException:
                 self.log.info('Reloading state due to HUP')

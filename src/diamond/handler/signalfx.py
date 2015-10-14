@@ -44,6 +44,7 @@ class SignalfxHandler(Handler):
         self.url = self.config['url']
         self.auth_token = self.config['auth_token']
         self.batch_max_interval = self.config['batch_max_interval']
+        self.request_timeout = self.config['request_timeout']
         self.resetBatchTimeout()
         # If a user leaves off the ending comma, cast to a array for them
         include_filters = self.config['include_filters']
@@ -70,6 +71,7 @@ class SignalfxHandler(Handler):
             'batch': 'How many to store before sending',
             'auth_token': 'Org API token to use when sending metrics',
             'include_filters': 'Regex pattern to filter which metrics are sent',
+            'request_timeout': 'Timeout in seconds to use for requests to signalfx',
             })
 
         return config
@@ -87,6 +89,7 @@ class SignalfxHandler(Handler):
             'batch_max_interval': 10,
             'auth_token': '',
             'include_filters': ['^.*'],
+            'request_timeout': 60,
             })
 
         return config
@@ -158,7 +161,7 @@ class SignalfxHandler(Handler):
                                "User-Agent": self.user_agent()})
         self.resetBatchTimeout()
         try:
-            urllib2.urlopen(req)
+            urllib2.urlopen(req, timeout=self.request_timeout)
         except urllib2.URLError:
             logging.exception("Unable to post signalfx metrics")
             return

@@ -44,7 +44,7 @@ class SignalfxHandler(Handler):
         self.url = self.config['url']
         self.auth_token = self.config['auth_token']
         self.batch_max_interval = self.config['batch_max_interval']
-        self.request_timeout = self.config['request_timeout']
+        self.request_timeout = int(self.config['request_timeout'])
         self.resetBatchTimeout()
         # If a user leaves off the ending comma, cast to a array for them
         include_filters = self.config['include_filters']

@@ -112,14 +112,14 @@ class Server(object):
         self.handler_queue = QueueHandler(
             config=self.config, queue=self.metric_queue, log=self.log, should_exit=self.metric_queue_full)
 
-        process = multiprocessing.Process(
+        handlers_process = multiprocessing.Process(
             name="Handlers",
             target=handler_process,
             args=(self.handlers, self.metric_queue, self.log),
         )
 
-        process.daemon = True
-        process.start()
+        handlers_process.daemon = True
+        handlers_process.start()
 
         ########################################################################
         # Signals
@@ -201,6 +201,10 @@ class Server(object):
 
                 time.sleep(1)
                 if self.handler_queue.should_exit.is_set():
+                    exit(1)
+
+                if handlers_process.is_alive() is False:
+                    self.log.error("Handler process has exited, shutting down")
                     exit(1)
 
             except SIGHUPException:

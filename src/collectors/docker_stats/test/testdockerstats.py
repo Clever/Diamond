@@ -70,7 +70,7 @@ def get_client_mock():
     u'Id': u'146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec',
     u'Name': u'test',
     u'Config': {
-      u'Env': ["TEST=newname"]
+      u'Env': ["TEST=/new/name/"]
     }
   }
   return client_mock
@@ -133,20 +133,58 @@ class TestDockerStatsCollectorWithEnv(CollectorTestCase):
     docker_client_mock.return_value = client_mock
     self.collector.collect()
     metrics = {
-      'newname.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.mem.rss': 100,
-      'newname.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.tx_bytes': 100,
-      'newname.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.rx_bytes': 100,
+      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.mem.rss': 100,
+      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.tx_bytes': 100,
+      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.rx_bytes': 100,
     }
     self.assertPublishedMany(publish_mock, metrics)
 
     self.collector.collect()
     metrics = {
-      'newname.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.mem.rss': 200,
-      'newname.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.tx_bytes': 200,
-      'newname.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.rx_bytes': 200,
-      'newname.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu0.user': 1,
-      'newname.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu1.user': 2,
-      'newname.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu2.user': 3,
-      'newname.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu3.user': 4,
+      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.mem.rss': 200,
+      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.tx_bytes': 200,
+      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.rx_bytes': 200,
+      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu0.user': 1,
+      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu1.user': 2,
+      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu2.user': 3,
+      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu3.user': 4,
+    }
+    self.assertPublishedMany(publish_mock, metrics)
+
+class TestDockerStatsCollectorWithoutReplaceSlashes(CollectorTestCase):
+  def setUp(self):
+    config = get_collector_config('DockerStatsCollector', {
+      'client_url': 'localhost:4243',
+      'name_from_env': 'TEST',
+      'interval': 1,
+      'sanitize_slashes': False,
+    })
+    self.collector = DockerStatsCollector(config, None)
+
+  def test_import(self):
+    self.assertTrue(DockerStatsCollector)
+
+  @patch.object(Collector, 'publish')
+  @patch('docker.Client')
+  def test_should_publish_values_correctly(self, docker_client_mock, publish_mock):
+    client_mock = get_client_mock()
+    docker_client_mock.return_value = client_mock
+    self.collector.collect()
+    metrics = {
+      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.mem.rss': 100,
+      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.tx_bytes': 100,
+      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.rx_bytes': 100,
+    }
+    self.assertPublishedMany(publish_mock, metrics)
+
+    self.collector.collect()
+    metrics = {
+      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.mem.rss': 200,
+      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.tx_bytes': 200,
+      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.rx_bytes': 200,
+      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu0.user': 1,
+      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu1.user': 2,
+      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu2.user': 3,
+      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu3.user': 4,
     }
     self.assertPublishedMany(publish_mock, metrics)

@@ -54,7 +54,7 @@ class DockerStatsCollector(diamond.collector.Collector):
       return None
 
     try:
-      client = docker.Client(base_url=self.config['client_url'])
+      client = docker.Client(base_url=self.config['client_url'], version='auto')
       container_ids = [container['Id'] for container in client.containers()]
 
       for container_id in container_ids:

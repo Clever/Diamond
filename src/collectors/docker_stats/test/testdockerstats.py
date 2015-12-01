@@ -23,9 +23,7 @@ def get_client_mock():
     {
       u'Id': u'146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec'
     }]
-  stats_mock = MagicMock()
-  client_mock.stats.return_value = stats_mock
-  stats_mock.next.side_effect = [
+  client_mock.stats.side_effect = [
     {
       u'cpu_stats': {
         u'cpu_usage': {

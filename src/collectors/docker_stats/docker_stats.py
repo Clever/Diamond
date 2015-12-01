@@ -68,7 +68,7 @@ class DockerStatsCollector(diamond.collector.Collector):
           name = sanitize_slashes(name)
 
         metrics_prefix = '.'.join([name, container_id])
-        stats = client.stats(container_id, True).next()
+        stats = client.stats(container_id, True, stream=False)
 
         # CPU Stats
         for ix, cpu_time in enumerate(stats['cpu_stats']['cpu_usage']['percpu_usage']):

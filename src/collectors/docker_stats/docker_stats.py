@@ -4,6 +4,7 @@ containers.
 """
 
 import diamond.collector
+from diamond.utils.signals import SIGALRMException
 
 try:
   import docker
@@ -54,7 +55,7 @@ class DockerStatsCollector(diamond.collector.Collector):
       return None
 
     try:
-      client = docker.Client(base_url=self.config['client_url'])
+      client = docker.Client(base_url=self.config['client_url'], version='auto')
       container_ids = [container['Id'] for container in client.containers()]
 
       for container_id in container_ids:
@@ -83,12 +84,16 @@ class DockerStatsCollector(diamond.collector.Collector):
         self.publish(metric_name,
                      stats['memory_stats']['stats']['total_rss'])
 
+
         # Network Stats
         for stat in [u'rx_bytes', u'tx_bytes']:
           self.publish('.'.join([metrics_prefix, 'net', stat]),
                        stats['network'][stat])
       return True
 
+    except SIGALRMException as e:
+      # sigalrm is raised if the collector takes too long
+      raise e
     except Exception as e:
       self.log.error("Couldn't collect from docker: %s", e)
       return None

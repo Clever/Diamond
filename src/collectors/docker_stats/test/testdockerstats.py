@@ -27,6 +27,7 @@ def get_client_mock():
     {
       u'cpu_stats': {
         u'cpu_usage': {
+          u'total_usage': 0,
           u'percpu_usage': [0,
                             0,
                             0,
@@ -36,7 +37,8 @@ def get_client_mock():
       u'memory_stats': {
         u'stats': {
           u'total_rss': 100,
-        }
+        },
+        u'limit': 500
       },
       u'network': {
         u'rx_bytes': 100,
@@ -46,6 +48,7 @@ def get_client_mock():
     {
       u'cpu_stats': {
         u'cpu_usage': {
+          u'total_usage': 100000000,
           u'percpu_usage': [10000000,
                             20000000,
                             30000000,
@@ -55,7 +58,8 @@ def get_client_mock():
       u'memory_stats': {
         u'stats': {
           u'total_rss': 200,
-        }
+        },
+        u'limit': 500
       },
       u'network': {
         u'rx_bytes': 200,
@@ -93,21 +97,24 @@ class TestDockerStatsCollector(CollectorTestCase):
     docker_client_mock.return_value = client_mock
     self.collector.collect()
     metrics = {
-      'test.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.mem.rss': 100,
-      'test.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.tx_bytes': 100,
-      'test.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.rx_bytes': 100,
+      'test.146979a53289.mem.rss': 100,
+      'test.146979a53289.mem.limit': 500,
+      'test.146979a53289.net.tx_bytes': 100,
+      'test.146979a53289.net.rx_bytes': 100,
     }
     self.assertPublishedMany(publish_mock, metrics)
 
     self.collector.collect()
     metrics = {
-      'test.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.mem.rss': 200,
-      'test.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.tx_bytes': 200,
-      'test.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.rx_bytes': 200,
-      'test.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu0.user': 1,
-      'test.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu1.user': 2,
-      'test.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu2.user': 3,
-      'test.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu3.user': 4,
+      'test.146979a53289.mem.rss': 200,
+      'test.146979a53289.mem.limit': 500,
+      'test.146979a53289.net.tx_bytes': 200,
+      'test.146979a53289.net.rx_bytes': 200,
+      'test.146979a53289.cpu0.user': 1,
+      'test.146979a53289.cpu1.user': 2,
+      'test.146979a53289.cpu2.user': 3,
+      'test.146979a53289.cpu3.user': 4,
+      'test.146979a53289.cpu_total.user': 10
     }
     self.assertPublishedMany(publish_mock, metrics)
 
@@ -131,21 +138,24 @@ class TestDockerStatsCollectorWithEnv(CollectorTestCase):
     docker_client_mock.return_value = client_mock
     self.collector.collect()
     metrics = {
-      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.mem.rss': 100,
-      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.tx_bytes': 100,
-      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.rx_bytes': 100,
+      'new.name.146979a53289.mem.rss': 100,
+      'new.name.146979a53289.mem.limit': 500,
+      'new.name.146979a53289.net.tx_bytes': 100,
+      'new.name.146979a53289.net.rx_bytes': 100,
     }
     self.assertPublishedMany(publish_mock, metrics)
 
     self.collector.collect()
     metrics = {
-      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.mem.rss': 200,
-      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.tx_bytes': 200,
-      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.rx_bytes': 200,
-      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu0.user': 1,
-      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu1.user': 2,
-      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu2.user': 3,
-      'new.name.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu3.user': 4,
+      'new.name.146979a53289.mem.rss': 200,
+      'new.name.146979a53289.mem.limit': 500,
+      'new.name.146979a53289.net.tx_bytes': 200,
+      'new.name.146979a53289.net.rx_bytes': 200,
+      'new.name.146979a53289.cpu0.user': 1,
+      'new.name.146979a53289.cpu1.user': 2,
+      'new.name.146979a53289.cpu2.user': 3,
+      'new.name.146979a53289.cpu3.user': 4,
+      'new.name.146979a53289.cpu_total.user': 10
     }
     self.assertPublishedMany(publish_mock, metrics)
 
@@ -169,20 +179,23 @@ class TestDockerStatsCollectorWithoutReplaceSlashes(CollectorTestCase):
     docker_client_mock.return_value = client_mock
     self.collector.collect()
     metrics = {
-      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.mem.rss': 100,
-      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.tx_bytes': 100,
-      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.rx_bytes': 100,
+      '/new/name/.146979a53289.mem.rss': 100,
+      '/new/name/.146979a53289.mem.limit': 500,
+      '/new/name/.146979a53289.net.tx_bytes': 100,
+      '/new/name/.146979a53289.net.rx_bytes': 100,
     }
     self.assertPublishedMany(publish_mock, metrics)
 
     self.collector.collect()
     metrics = {
-      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.mem.rss': 200,
-      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.tx_bytes': 200,
-      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.net.rx_bytes': 200,
-      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu0.user': 1,
-      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu1.user': 2,
-      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu2.user': 3,
-      '/new/name/.146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec.cpu3.user': 4,
+      '/new/name/.146979a53289.mem.rss': 200,
+      '/new/name/.146979a53289.mem.limit': 500,
+      '/new/name/.146979a53289.net.tx_bytes': 200,
+      '/new/name/.146979a53289.net.rx_bytes': 200,
+      '/new/name/.146979a53289.cpu0.user': 1,
+      '/new/name/.146979a53289.cpu1.user': 2,
+      '/new/name/.146979a53289.cpu2.user': 3,
+      '/new/name/.146979a53289.cpu3.user': 4,
+      '/new/name/.146979a53289.cpu_total.user': 10
     }
     self.assertPublishedMany(publish_mock, metrics)

@@ -68,7 +68,7 @@ class DockerStatsCollector(diamond.collector.Collector):
         if self.config['sanitize_slashes']:
           name = sanitize_slashes(name)
 
-        metrics_prefix = '.'.join([name, container_id])
+        metrics_prefix = '.'.join([name, container_id[:12]])
         stats = client.stats(container_id, True, stream=False)
 
         # CPU Stats

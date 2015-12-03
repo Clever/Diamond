@@ -78,11 +78,21 @@ class DockerStatsCollector(diamond.collector.Collector):
                        int(self.derivative(metric_name,
                                            cpu_time / 10000000.0,
                                            diamond.collector.MAX_COUNTER)))
+        # Total CPU
+        metric_name = '.'.join([metrics_prefix, 'cpu_total', 'user'])
+        self.publish(metric_name,
+                     int(self.derivative(metric_name,
+                                         stats['cpu_stats']['cpu_usage']['total_usage'] / 10000000.0,
+                                         diamond.collector.MAX_COUNTER)))
 
         # Memory Stats
         metric_name = '.'.join([metrics_prefix, 'mem', 'rss'])
         self.publish(metric_name,
                      stats['memory_stats']['stats']['total_rss'])
+
+        metric_name = '.'.join([metrics_prefix, 'mem', 'limit'])
+        self.publish(metric_name,
+                     stats['memory_stats']['limit'])
 
 
         # Network Stats

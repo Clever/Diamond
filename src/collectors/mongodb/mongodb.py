@@ -234,6 +234,14 @@ class MongoDBCollector(diamond.collector.Collector):
         for node in data['members']:
             self._publish_dict_with_prefix(node,
                                            prefix + ['node', str(node['_id'])])
+        master_optime = get_master_optime(data)
+        my_optime = get_self_optime(data)
+        if master_optime and my_optime:
+            lag = master_optime - my_optime
+            self._publish_dict_with_prefix({
+                'optime_lag': lag.total_seconds()
+            }, prefix)
+
 
     def _publish_transformed(self, data, base_prefix):
         """ Publish values of type: counter or percent """
@@ -343,3 +351,15 @@ class MongoDBCollector(diamond.collector.Collector):
             'globalLock': data.get('globalLock'),
             'indexCounters': data.get('indexCounters')
         }
+
+def get_master_optime(replset_status):
+    for member in replset_status['members']:
+        if member['state'] == 1:
+            return member['optimeDate']
+    return None
+
+def get_self_optime(replset_status):
+    for member in replset_status['members']:
+        if member['self'] is True:
+            return member['optimeDate']
+    return None

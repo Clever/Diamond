@@ -360,6 +360,6 @@ def get_master_optime(replset_status):
 
 def get_self_optime(replset_status):
     for member in replset_status['members']:
-        if member['self'] is True:
+        if member.get('self', False) is True:
             return member['optimeDate']
     return None

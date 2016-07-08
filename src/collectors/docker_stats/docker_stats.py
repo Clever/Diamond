@@ -110,7 +110,7 @@ class DockerStatsCollector(diamond.collector.Collector):
 
 
         # Network Stats
-        networks = stats.get('networks', [])
+        networks = stats.get('networks', {})
         if not networks:
           networks = {'eth0': stats['network']}
 

@@ -110,9 +110,14 @@ class DockerStatsCollector(diamond.collector.Collector):
 
 
         # Network Stats
-        for stat in [u'rx_bytes', u'tx_bytes']:
-          self.publish('.'.join([metrics_prefix, 'net', stat]),
-                       stats['network'][stat])
+        networks = stats.get('networks', [])
+        if not networks:
+          networks = {'eth0': stats['network']}
+
+        for network_name, network in networks.iteritems():
+          for stat in [u'rx_bytes', u'tx_bytes']:
+            self.publish('.'.join([metrics_prefix, 'net', network_name, stat]),
+                         network[stat])
       return True
 
     except SIGALRMException as e:

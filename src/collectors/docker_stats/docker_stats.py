@@ -81,7 +81,6 @@ class DockerStatsCollector(diamond.collector.Collector):
             idlabel = parts[1][:8]
             name = sanitize_delim(tag, "--")
 
-
         metrics_prefix = '.'.join([name, idlabel, "docker"])
         stats = client.stats(container_id, True, stream=False)
 

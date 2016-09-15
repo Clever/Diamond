@@ -4,7 +4,13 @@ containers.
 """
 
 import diamond.collector
+import psutil
+import os
 from diamond.utils.signals import SIGALRMException
+
+# Allows us to mount the host /proc in the container at PROCFS_PATH and
+# get information from the host
+psutil.PROCFS_PATH = os.getenv("PROCFS_PATH", psutil.PROCFS_PATH)
 
 try:
   import docker
@@ -20,6 +26,10 @@ def env_list_to_dict(env_list):
 
 def sanitize_delim(name, delim):
   return ".".join(name.strip(delim).split(delim))
+
+def getChildrenPIDs(pid):
+  parent = psutil.Process(pid)
+  return parent.children(recursive=True)
 
 class DockerStatsCollector(diamond.collector.Collector):
 
@@ -119,6 +129,20 @@ class DockerStatsCollector(diamond.collector.Collector):
           for stat in [u'rx_bytes', u'tx_bytes']:
             self.publish('.'.join([metrics_prefix, 'net', network_name, stat]),
                          network[stat])
+
+        # Open sockets
+        cPIDs = getChildrenPIDs(container["State"]["Pid"])
+        s = 0
+        for pid in cPIDs:
+          fd_dir = "{}/{}/fd".format(psutil.PROCFS_PATH, pid.pid)
+          for fd in os.listdir(fd_dir):
+            # fd can be closed between listdir and readlink
+            try:
+              if "socket" in os.readlink("{}/{}".format(fd_dir, fd)):
+                s += 1
+            except OSError as e:
+              continue
+        self.publish('.'.join([metrics_prefix, 'open_sockets']), s)
       return True
 
     except SIGALRMException as e:

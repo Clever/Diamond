@@ -1,6 +1,7 @@
 MySQL-python
 PyYAML
 beanstalkc
+protobuf
 bernhard
 boto
 configobj

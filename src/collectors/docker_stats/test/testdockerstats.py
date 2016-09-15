@@ -4,6 +4,7 @@ from test import get_collector_config
 from mock import Mock
 from mock import MagicMock
 from mock import patch
+import psutil
 
 from diamond.collector import Collector
 from docker_stats import DockerStatsCollector
@@ -71,6 +72,9 @@ def get_client_mock():
   client_mock.inspect_container.return_value = {
     u'Id': u'146979a5328952af505cd43123b45b06c38db8679aaadb2a4c18ad699a5cbeec',
     u'Name': u'test',
+    u'State': {
+      u'Pid': 1234
+    },
     u'Config': {
       u'Env': ["TEST=/new/name/"],
       u'Labels': {
@@ -147,6 +151,10 @@ def get_client_multi_network_mock():
   }
   return client_mock
 
+def get_psutil_mock():
+  ps_mock = Mock()
+  ps_mock.children.return_value = [psutil.Process(1), psutil.Process(2)]
+  return ps_mock
 
 class TestDockerStatsCollector(CollectorTestCase):
   def setUp(self):
@@ -160,9 +168,15 @@ class TestDockerStatsCollector(CollectorTestCase):
   def test_import(self):
     self.assertTrue(DockerStatsCollector)
 
+  @patch('docker_stats.os.listdir')
+  @patch('docker_stats.os.readlink')
+  @patch('psutil.Process')
   @patch.object(Collector, 'publish')
   @patch('docker.Client')
-  def test_should_publish_values_correctly(self, docker_client_mock, publish_mock):
+  def test_should_publish_values_correctly(self, docker_client_mock, publish_mock, psutil_mock, os_readlink_mock, os_listdir_mock):
+    os_readlink_mock.return_value = "socket 123"
+    os_listdir_mock.return_value = ['1', '2', '3']
+    psutil_mock.return_value = get_psutil_mock()
     client_mock = get_client_mock()
     docker_client_mock.return_value = client_mock
     self.collector.collect()
@@ -184,7 +198,8 @@ class TestDockerStatsCollector(CollectorTestCase):
       'test.146979a53289.docker.cpu1.user': 2,
       'test.146979a53289.docker.cpu2.user': 3,
       'test.146979a53289.docker.cpu3.user': 4,
-      'test.146979a53289.docker.cpu_total.user': 10
+      'test.146979a53289.docker.cpu_total.user': 10,
+      'test.146979a53289.docker.open_sockets': 6
     }
     self.assertPublishedMany(publish_mock, metrics)
 

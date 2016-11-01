@@ -10,16 +10,12 @@ v1.2 : added a timer to delay influxdb writing in case of failure
        this whill avoid the 100% cpu loop when influx in not responding
        Sebastien Prune THOMAS - prune@lecentre.net
 
-- Dependency:
-    - influxdb client (pip install influxdb)
-      you need version > 0.1.6 for HTTPS (not yet released)
+#### Dependencies
+ * [influxdb](https://github.com/influxdb/influxdb-python)
 
-- enable it in `diamond.conf` :
 
-handlers = diamond.handler.influxdbHandler.InfluxdbHandler
-
-- add config to `diamond.conf` :
-
+#### Configuration
+```
 [[InfluxdbHandler]]
 hostname = localhost
 port = 8086 #8084 for HTTPS
@@ -30,6 +26,7 @@ password = root
 database = graphite
 time_precision = s
 influxdb_version = 0.8
+```
 """
 
 from six import integer_types
@@ -51,6 +48,7 @@ class InfluxdbHandler(Handler):
     """
     Sending data to Influxdb using batched format
     """
+
     def __init__(self, config=None):
         """
         Create a new instance of the InfluxdbeHandler
@@ -217,13 +215,13 @@ class InfluxdbHandler(Handler):
                     self.time_multiplier = 1
 
         except Exception:
-                self._close()
-                if self.time_multiplier < 5:
-                    self.time_multiplier += 1
-                self._throttle_error(
-                    "InfluxdbHandler: Error sending metrics, waiting for %ds.",
-                    2**self.time_multiplier)
-                raise
+            self._close()
+            if self.time_multiplier < 5:
+                self.time_multiplier += 1
+            self._throttle_error(
+                "InfluxdbHandler: Error sending metrics, waiting for %ds.",
+                2**self.time_multiplier)
+            raise
 
     def _connect(self):
         """

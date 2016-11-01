@@ -15,6 +15,7 @@ import re
 
 import diamond.collector
 import diamond.convertor
+from diamond.collector import str_to_bool
 
 
 class AmavisCollector(diamond.collector.Collector):
@@ -64,7 +65,7 @@ class AmavisCollector(diamond.collector.Collector):
         Collect memory stats
         """
         try:
-            if self.config['use_sudo']:
+            if str_to_bool(self.config['use_sudo']):
                 # Use -u instead of --user as the former is more portable. Not
                 # all versions of sudo support the long form --user.
                 cmdline = [
@@ -86,10 +87,13 @@ class AmavisCollector(diamond.collector.Collector):
                             if metric == 'name':
                                 continue
                             mtype = 'GAUGE'
+                            precision = 2
                             if metric in ('count', 'time'):
                                 mtype = 'COUNTER'
+                                precision = 0
                             self.publish("{0}.{1}".format(name, metric),
-                                         value, metric_type=mtype)
+                                         value, metric_type=mtype,
+                                         precision=precision)
 
         except OSError as err:
             self.log.error("Could not run %s: %s",

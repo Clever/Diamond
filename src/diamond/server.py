@@ -49,6 +49,7 @@ class Server(object):
         self.handlers = []
         self.handler_queue = []
         self.modules = {}
+        self.metric_queue = None
 
         # We do this weird process title swap around to get the sync manager
         # title correct for ps
@@ -66,18 +67,22 @@ class Server(object):
         Load handler and collector classes and then start collectors
         """
 
-        ########################################################################
+        #######################################################################
         # Config
-        ########################################################################
+        #######################################################################
         self.config = load_config(self.configfile)
 
         collectors = load_collectors(self.config['server']['collectors_path'])
+        metric_queue_size = int(self.config['server'].get('metric_queue_size',
+                                                          16384))
+        self.metric_queue = self.manager.Queue(maxsize=metric_queue_size)
+        self.log.debug('metric_queue_size: %d', metric_queue_size)
 
-        ########################################################################
+        #######################################################################
         # Handlers
         #
         # TODO: Eventually move each handler to it's own process space?
-        ########################################################################
+        #######################################################################
 
         if 'handlers_path' in self.config['server']:
             handlers_path = self.config['server']['handlers_path']
@@ -107,7 +112,7 @@ class Server(object):
         QueueHandler = load_dynamic_class(
             'diamond.handler.queue.QueueHandler',
             Handler
-            )
+        )
 
         self.handler_queue = QueueHandler(
             config=self.config, queue=self.metric_queue, log=self.log, should_exit=self.metric_queue_full)
@@ -121,13 +126,14 @@ class Server(object):
         handlers_process.daemon = True
         handlers_process.start()
 
-        ########################################################################
+        #######################################################################
         # Signals
-        ########################################################################
+        #######################################################################
 
-        signal.signal(signal.SIGHUP, signal_to_exception)
+        if hasattr(signal, 'SIGHUP'):
+            signal.signal(signal.SIGHUP, signal_to_exception)
 
-        ########################################################################
+        #######################################################################
 
         while True:
             try:
@@ -161,6 +167,8 @@ class Server(object):
                     for cls in collectors.values()
                 )
 
+                load_delay = self.config['server'].get('collectors_load_delay',
+                                                       1.0)
                 for process_name in running_collectors - running_processes:
                     # To handle running multiple collectors concurrently, we
                     # split on white space and use the first word as the
@@ -187,13 +195,13 @@ class Server(object):
                         continue
 
                     # Splay the loads
-                    time.sleep(1)
+                    time.sleep(float(load_delay))
 
                     process = multiprocessing.Process(
                         name=process_name,
                         target=collector_process,
                         args=(collector, self.metric_queue, self.log)
-                        )
+                    )
                     process.daemon = True
                     process.start()
 
@@ -208,7 +216,13 @@ class Server(object):
                     exit(1)
 
             except SIGHUPException:
+                # ignore further SIGHUPs for now
+                original_sighup_handler = signal.getsignal(signal.SIGHUP)
+                signal.signal(signal.SIGHUP, signal.SIG_IGN)
+
                 self.log.info('Reloading state due to HUP')
                 self.config = load_config(self.configfile)
                 collectors = load_collectors(
                     self.config['server']['collectors_path'])
+                # restore SIGHUP handler
+                signal.signal(signal.SIGHUP, original_sighup_handler)

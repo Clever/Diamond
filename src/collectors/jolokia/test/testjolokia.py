@@ -1,21 +1,23 @@
 #!/usr/bin/python
 # coding=utf-8
-################################################################################
+##########################################################################
 
 from test import CollectorTestCase
 from test import get_collector_config
 from test import unittest
 from mock import Mock
 from mock import patch
+import re
 
 from diamond.collector import Collector
 
 from jolokia import JolokiaCollector
 
-################################################################################
+##########################################################################
 
 
 class TestJolokiaCollector(CollectorTestCase):
+
     def setUp(self):
         config = get_collector_config('JolokiaCollector', {})
 
@@ -26,7 +28,7 @@ class TestJolokiaCollector(CollectorTestCase):
 
     @patch.object(Collector, 'publish')
     def test_should_work_with_real_data(self, publish_mock):
-        def se(url):
+        def se(url, timeout=0):
             if url == 'http://localhost:8778/jolokia/list':
                 return self.getFixture('listing')
             else:
@@ -45,7 +47,7 @@ class TestJolokiaCollector(CollectorTestCase):
 
     @patch.object(Collector, 'publish')
     def test_real_data_with_rewrite(self, publish_mock):
-        def se(url):
+        def se(url, timeout=0):
             if url == 'http://localhost:8778/jolokia/list':
                 return self.getFixture('listing')
             else:
@@ -53,12 +55,22 @@ class TestJolokiaCollector(CollectorTestCase):
         patch_urlopen = patch('urllib2.urlopen', Mock(side_effect=se))
 
         patch_urlopen.start()
-        self.collector.rewrite = {'memoryUsage': 'memUsed', '.*\.init': ''}
+        rewrite = [
+            (re.compile('memoryUsage'), 'memUsed'),
+            (re.compile('.*\.init'), ''),
+        ]
+        self.collector.rewrite.extend(rewrite)
         self.collector.collect()
         patch_urlopen.stop()
 
         rewritemetrics = self.get_metrics_rewrite_test()
         self.assertPublishedMany(publish_mock, rewritemetrics)
+
+    @patch.object(Collector, 'publish')
+    def test_should_work_with_real_data_and_basic_auth(self, publish_mock):
+        self.collector.config["username"] = "user"
+        self.collector.config["password"] = "password"
+        self.test_should_work_with_real_data()
 
     @patch.object(Collector, 'publish')
     def test_should_fail_gracefully(self, publish_mock):
@@ -73,7 +85,7 @@ class TestJolokiaCollector(CollectorTestCase):
 
     @patch.object(Collector, 'publish')
     def test_should_skip_when_mbean_request_fails(self, publish_mock):
-        def se(url):
+        def se(url, timeout=0):
             if url == 'http://localhost:8778/jolokia/list':
                 return self.getFixture('listing_with_bad_mbean')
             elif url == ('http://localhost:8778/jolokia/?ignoreErrors=true'
@@ -94,9 +106,9 @@ class TestJolokiaCollector(CollectorTestCase):
         self.assertPublishedMany(publish_mock, metrics)
 
     def test_should_escape_jolokia_domains(self):
-        domain_with_slash = self.collector.escape_domain('some/domain')
-        domain_with_bang = self.collector.escape_domain('some!domain')
-        domain_with_quote = self.collector.escape_domain('some"domain')
+        domain_with_slash = self.collector._escape_domain('some/domain')
+        domain_with_bang = self.collector._escape_domain('some!domain')
+        domain_with_quote = self.collector._escape_domain('some"domain')
         self.assertEqual(domain_with_slash, 'some%21/domain')
         self.assertEqual(domain_with_bang, 'some%21%21domain')
         self.assertEqual(domain_with_quote, 'some%21%22domain')
@@ -153,6 +165,6 @@ class TestJolokiaCollector(CollectorTestCase):
             prefix + '.memUsedBeforeGc.Par_Survivor_Space.used': 414088
         }
 
-################################################################################
+##########################################################################
 if __name__ == "__main__":
     unittest.main()

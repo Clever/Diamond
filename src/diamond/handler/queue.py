@@ -52,3 +52,4 @@ class QueueHandler(Handler):
         except Queue.Full:
             self.log.error("metric queue full")
             self.should_exit.set()
+

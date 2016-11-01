@@ -4,6 +4,10 @@
 Collects all number values from the db.serverStatus() command, other
 values are ignored.
 
+**Note:** this collector expects pymongo 2.4 and onward. See the pymongo
+changelog for more details:
+http://api.mongodb.org/python/current/changelog.html#changes-in-version-2-4
+
 #### Dependencies
 
  * pymongo
@@ -173,8 +177,9 @@ class MongoDBCollector(diamond.collector.Collector):
                 try:
                     conn.admin.authenticate(user, passwd)
                 except Exception, e:
-                    self.log.error('User auth given, but could not autheticate'
-                                   + ' with host: %s, err: %s' % (host, e))
+                    self.log.error(
+                        'User auth given, but could not autheticate' +
+                        ' with host: %s, err: %s' % (host, e))
                     return{}
 
             data = conn.db.command('serverStatus')
@@ -205,7 +210,7 @@ class MongoDBCollector(diamond.collector.Collector):
                         continue
                     if (self.config['collection_sample_rate'] < 1 and (
                             zlib.crc32(collection_name) & 0xffffffff
-                            ) > sample_threshold):
+                    ) > sample_threshold):
                         continue
 
                     collection_stats = conn[db_name].command('collstats',
@@ -242,14 +247,14 @@ class MongoDBCollector(diamond.collector.Collector):
                 'optime_lag': lag.total_seconds()
             }, prefix)
 
-
     def _publish_transformed(self, data, base_prefix):
         """ Publish values of type: counter or percent """
         self._publish_dict_with_prefix(data.get('opcounters', {}),
                                        base_prefix + ['opcounters_per_sec'],
                                        self.publish_counter)
         self._publish_dict_with_prefix(data.get('opcountersRepl', {}),
-                                       base_prefix + ['opcountersRepl_per_sec'],
+                                       base_prefix +
+                                       ['opcountersRepl_per_sec'],
                                        self.publish_counter)
         self._publish_metrics(base_prefix + ['backgroundFlushing_per_sec'],
                               'flushes',

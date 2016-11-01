@@ -180,8 +180,8 @@ class RedisCollector(diamond.collector.Collector):
             'db': '',
             'auth': 'Password?',
             'databases': 'how many database instances to collect',
-            'instances': "Redis addresses, comma separated, syntax:"
-            + " nick1@host:port, nick2@:port or nick3@host"
+            'instances': "Redis addresses, comma separated, syntax:" +
+                         " nick1@host:port, nick2@:port or nick3@host"
         })
         return config_help
 
@@ -265,6 +265,24 @@ class RedisCollector(diamond.collector.Collector):
         del client
         return info
 
+    def _get_config(self, host, port, unix_socket, auth, config_key):
+        """Return config string from specified Redis instance and config key
+
+:param str host: redis host
+:param int port: redis port
+:param str host: redis config_key
+:rtype: str
+
+        """
+
+        client = self._client(host, port, unix_socket, auth)
+        if client is None:
+            return None
+
+        config_value = client.config_get(config_key)
+        del client
+        return config_value
+
     def collect_instance(self, nick, host, port, unix_socket, auth):
         """Collect metrics from a single Redis instance
 
@@ -285,6 +303,21 @@ class RedisCollector(diamond.collector.Collector):
         # server
         data = dict()
 
+        # Connect to redis and get the maxmemory config value
+        # Then calculate the % maxmemory of memory used
+        maxmemory_config = self._get_config(host, port, unix_socket, auth,
+                                            'maxmemory')
+        if maxmemory_config and 'maxmemory' in maxmemory_config.keys():
+            maxmemory = float(maxmemory_config['maxmemory'])
+
+            # Only report % used if maxmemory is a non zero value
+            if maxmemory == 0:
+                maxmemory_percent = 0.0
+            else:
+                maxmemory_percent = info['used_memory'] / maxmemory * 100
+                maxmemory_percent = round(maxmemory_percent, 2)
+            data['memory.used_percent'] = float("%.2f" % maxmemory_percent)
+
         # Iterate over the top level keys
         for key in self._KEYS:
             if self._KEYS[key] in info:
@@ -297,7 +330,7 @@ class RedisCollector(diamond.collector.Collector):
 
         # Look for databaase speific stats
         for dbnum in range(0, int(self.config.get('databases',
-                                  self._DATABASE_COUNT))):
+                                                  self._DATABASE_COUNT))):
             db = 'db%i' % dbnum
             if db in info:
                 for key in info[db]:
